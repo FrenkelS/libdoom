@@ -42,10 +42,12 @@
 #define IMPLEMENT_ME() I_Error("Implement me: %s: %s @ %i\n", __FILE__, __func__ , __LINE__)
 
 
+#if defined _MSC_VER
 __declspec(noreturn) static void __builtin_unreachable(void)
 {
 	__assume(false);
 }
+#endif
 
 
 //**************************************************************************************

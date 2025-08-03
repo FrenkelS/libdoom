@@ -27,7 +27,11 @@ rcsid[] = "$Id: m_argv.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 
 #include <string.h>
 
+
+#if defined _MSC_VER
 #define strcasecmp _stricmp
+#endif
+
 
 int		myargc;
 char**		myargv;

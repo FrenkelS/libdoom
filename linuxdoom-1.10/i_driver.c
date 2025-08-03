@@ -24,14 +24,14 @@
  *-----------------------------------------------------------------------------*/
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "i_lib.h"
 
 
 static void Error(char *error)
 {
-	printf(error);
-	printf("\n");
+	printf("%s\n", error);
 	exit(1);
 }
 

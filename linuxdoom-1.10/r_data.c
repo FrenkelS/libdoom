@@ -28,6 +28,8 @@
 static const char
 rcsid[] = "$Id: r_data.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
 
+#include <stdint.h>
+
 #include "i_system.h"
 #include "z_zone.h"
 
@@ -42,8 +44,13 @@ rcsid[] = "$Id: r_data.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
 #include "doomstat.h"
 #include "r_sky.h"
 
+
+#if defined _MSC_VER
 #define alloca		_alloca
 #define strncasecmp	_strnicmp
+#else
+#include <alloca.h>
+#endif
 
 
 #include "r_data.h"
