@@ -4,6 +4,7 @@
 // $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
+// Copyright (C) 2025 by Frenkel Smeijers
 //
 // This source is available for distribution and/or modification
 // only under the terms of the DOOM Source Code License as
@@ -31,7 +32,6 @@ rcsid[] = "$Id: m_misc.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 #include <sys/types.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include <ctype.h>
 

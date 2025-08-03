@@ -4,6 +4,7 @@
 // $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
+// Copyright (C) 2025 by Frenkel Smeijers
 //
 // This source is available for distribution and/or modification
 // only under the terms of the DOOM Source Code License as
@@ -25,6 +26,8 @@ rcsid[] = "$Id: m_argv.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 
 
 #include <string.h>
+
+#define strcasecmp _stricmp
 
 int		myargc;
 char**		myargv;

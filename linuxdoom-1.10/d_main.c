@@ -4,6 +4,7 @@
 // $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
+// Copyright (C) 2025 by Frenkel Smeijers
 //
 // This source is available for distribution and/or modification
 // only under the terms of the DOOM Source Code License as
@@ -31,14 +32,7 @@ static const char rcsid[] = "$Id: d_main.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
 #define	FGCOLOR		8
 
 
-#ifdef NORMALUNIX
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#endif
+#define R_OK 4
 
 
 #include "doomdef.h"
@@ -572,47 +566,14 @@ void IdentifyVersion (void)
     char*	plutoniawad;
     char*	tntwad;
 
-#ifdef NORMALUNIX
-    char *home;
-    char *doomwaddir;
-    doomwaddir = getenv("DOOMWADDIR");
-    if (!doomwaddir)
-	doomwaddir = ".";
-
-    // Commercial.
-    doom2wad = malloc(strlen(doomwaddir)+1+9+1);
-    sprintf(doom2wad, "%s/doom2.wad", doomwaddir);
-
-    // Retail.
-    doomuwad = malloc(strlen(doomwaddir)+1+8+1);
-    sprintf(doomuwad, "%s/doomu.wad", doomwaddir);
-    
-    // Registered.
-    doomwad = malloc(strlen(doomwaddir)+1+8+1);
-    sprintf(doomwad, "%s/doom.wad", doomwaddir);
-    
-    // Shareware.
-    doom1wad = malloc(strlen(doomwaddir)+1+9+1);
-    sprintf(doom1wad, "%s/doom1.wad", doomwaddir);
-
-     // Bug, dear Shawn.
-    // Insufficient malloc, caused spurious realloc errors.
-    plutoniawad = malloc(strlen(doomwaddir)+1+/*9*/12+1);
-    sprintf(plutoniawad, "%s/plutonia.wad", doomwaddir);
-
-    tntwad = malloc(strlen(doomwaddir)+1+9+1);
-    sprintf(tntwad, "%s/tnt.wad", doomwaddir);
-
-
-    // French stuff.
-    doom2fwad = malloc(strlen(doomwaddir)+1+10+1);
-    sprintf(doom2fwad, "%s/doom2f.wad", doomwaddir);
-
-    home = getenv("HOME");
-    if (!home)
-      I_Error("Please set $HOME to your home directory");
-    sprintf(basedefault, "%s/.doomrc", home);
-#endif
+    strcpy (basedefault,"default.cfg");
+    doom1wad = "doom1.wad";
+    doom2fwad = "doom2f.wad";
+    doom2wad = "doom2.wad";
+    doomwad = "doom.wad";
+    doomuwad = "doomu.wad";
+    plutoniawad = "plutonia.wad";
+    tntwad = "tnt.wad";
 
     if (M_CheckParm ("-shdev"))
     {

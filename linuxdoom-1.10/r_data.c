@@ -4,6 +4,7 @@
 // $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
+// Copyright (C) 2025 by Frenkel Smeijers
 //
 // This source is available for distribution and/or modification
 // only under the terms of the DOOM Source Code License as
@@ -41,9 +42,8 @@ rcsid[] = "$Id: r_data.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
 #include "doomstat.h"
 #include "r_sky.h"
 
-#ifdef LINUX
-#include  <alloca.h>
-#endif
+#define alloca		_alloca
+#define strncasecmp	_strnicmp
 
 
 #include "r_data.h"
