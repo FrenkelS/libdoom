@@ -64,7 +64,9 @@ public class LibDoomDriver {
 
 		String os = System.getProperty("os.name");
 		Path path;
-		if (os.startsWith("Windows")) {
+		if ("Linux".equals(os)) {
+			path = Path.of("../linuxdoom-1.10/linux", "libdoom.so");
+		} else if (os.startsWith("Windows")) {
 			path = Path.of("../linuxdoom-1.10/windows", "libdoom.dll");
 		} else {
 			throw new IllegalStateException("Unsupported operating system: " + os);
