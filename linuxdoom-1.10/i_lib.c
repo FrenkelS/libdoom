@@ -80,7 +80,7 @@ void I_Error(char *error, ...)
 
 void I_Quit(void)
 {
-	IMPLEMENT_ME();
+	I_Error("Thanks for playing DOOM!");
 }
 
 
