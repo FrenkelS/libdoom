@@ -3,7 +3,7 @@ mkdir windows
 @set CFLAGS=/O2 /GL
 
 @set GLOBOBJS=
-@rem @set GLOBOBJS=%GLOBOBJS% i_driver_win.c
+@rem @set GLOBOBJS=%GLOBOBJS% i_driver.c
 
 @set GLOBOBJS=%GLOBOBJS% am_map.c
 @set GLOBOBJS=%GLOBOBJS% doomdef.c

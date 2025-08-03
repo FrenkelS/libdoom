@@ -19,7 +19,7 @@
  *  02111-1307, USA.
  *
  * DESCRIPTION:
- *      libdoom driver Windows version
+ *      libdoom dummy driver to see if everything compiles
  *
  *-----------------------------------------------------------------------------*/
 
