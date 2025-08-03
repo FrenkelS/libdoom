@@ -62,7 +62,13 @@ public class LibDoomDriver {
 	public LibDoomDriver() {
 		this.arena = Arena.global();
 
-		Path path = Path.of("../linuxdoom-1.10/windows", "libdoom.dll");
+		String os = System.getProperty("os.name");
+		Path path;
+		if (os.startsWith("Windows")) {
+			path = Path.of("../linuxdoom-1.10/windows", "libdoom.dll");
+		} else {
+			throw new IllegalStateException("Unsupported operating system: " + os);
+		}
 		this.libdoom = SymbolLookup.libraryLookup(path, arena);
 
 		this.linker = Linker.nativeLinker();
