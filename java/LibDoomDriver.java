@@ -124,6 +124,7 @@ public class LibDoomDriver {
 		frame.setResizable(false);
 		frame.setVisible(true);
 
+		frame.setFocusTraversalKeysEnabled(false);
 		frame.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyReleased(KeyEvent keyEvent) {
@@ -206,42 +207,29 @@ public class LibDoomDriver {
 		libdoompanel.blitBuffer(bytes);
 	}
 
-	private void setErrorFunc(MemorySegmentConsumer func) throws Throwable {
-		MemorySegment address = libdoom.findOrThrow("L_SetErrorFunc");
-		FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS);
-		MethodHandle methodHandle = linker.downcallHandle(address, function);
-		methodHandle.invokeExact(allocate(func, 80));
+	private void setFunc(String name, LibDoomRunnable func) {
+		try {
+			MemorySegment address = libdoom.findOrThrow(name);
+			FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS);
+			MethodHandle methodHandle = linker.downcallHandle(address, function);
+			methodHandle.invokeExact(allocate(func));
+		} catch (Throwable t) {
+			throw new IllegalStateException(t);
+		}
 	}
 
-	private void setInitGraphicsFunc(LibDoomRunnable func) throws Throwable {
-		MemorySegment address = libdoom.findOrThrow("L_SetInitGraphicsFunc");
-		FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS);
-		MethodHandle methodHandle = linker.downcallHandle(address, function);
-		methodHandle.invokeExact(allocate(func));
+	private void setFunc(String name, MemorySegmentConsumer func, long elementCount) {
+		try {
+			MemorySegment address = libdoom.findOrThrow(name);
+			FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS);
+			MethodHandle methodHandle = linker.downcallHandle(address, function);
+			methodHandle.invokeExact(allocate(func, elementCount));
+		} catch (Throwable t) {
+			throw new IllegalStateException(t);
+		}
 	}
 
-	private void setSetPaletteFunc(MemorySegmentConsumer func) throws Throwable {
-		MemorySegment address = libdoom.findOrThrow("L_SetSetPaletteFunc");
-		FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS);
-		MethodHandle methodHandle = linker.downcallHandle(address, function);
-		methodHandle.invokeExact(allocate(func, 3 * 256));
-	}
-
-	private void setFinishUpdateFunc(MemorySegmentConsumer func) throws Throwable {
-		MemorySegment address = libdoom.findOrThrow("L_SetFinishUpdateFunc");
-		FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS);
-		MethodHandle methodHandle = linker.downcallHandle(address, function);
-		methodHandle.invokeExact(allocate(func, SCREENWIDTH * SCREENHEIGHT));
-	}
-
-	private void setStartTicFunc(LibDoomRunnable func) throws Throwable {
-		MemorySegment address = libdoom.findOrThrow("L_SetStartTicFunc");
-		FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS);
-		MethodHandle methodHandle = linker.downcallHandle(address, function);
-		methodHandle.invokeExact(allocate(func));
-	}
-
-	private void setMyArgs(List<String> arguments) throws Throwable {
+	private void setMyArgs(List<String> arguments) {
 		int argc = arguments.size();
 		MemorySegment argv = arena.allocate(ValueLayout.ADDRESS, argc);
 		int i = 0;
@@ -250,25 +238,33 @@ public class LibDoomDriver {
 			i++;
 		}
 
-		MemorySegment address = libdoom.findOrThrow("L_SetMyArgs");
-		FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.ADDRESS);
-		MethodHandle methodHandle = linker.downcallHandle(address, function);
-		methodHandle.invokeExact(argc, argv);
+		try {
+			MemorySegment address = libdoom.findOrThrow("L_SetMyArgs");
+			FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.ADDRESS);
+			MethodHandle methodHandle = linker.downcallHandle(address, function);
+			methodHandle.invokeExact(argc, argv);
+		} catch (Throwable t) {
+			throw new IllegalStateException(t);
+		}
 	}
 
-	private void doomMain() throws Throwable {
-		MemorySegment address = libdoom.findOrThrow("L_DoomMain");
-		FunctionDescriptor function = FunctionDescriptor.ofVoid();
-		MethodHandle methodHandle = linker.downcallHandle(address, function);
-		methodHandle.invokeExact();
+	private void doomMain() {
+		try {
+			MemorySegment address = libdoom.findOrThrow("L_DoomMain");
+			FunctionDescriptor function = FunctionDescriptor.ofVoid();
+			MethodHandle methodHandle = linker.downcallHandle(address, function);
+			methodHandle.invokeExact();
+		} catch (Throwable t) {
+			throw new IllegalStateException(t);
+		}
 	}
 
-	public void doom(String[] args) throws Throwable {
-		setErrorFunc(this::error);
-		setInitGraphicsFunc(this::initGraphics);
-		setSetPaletteFunc(this::setPalette);
-		setFinishUpdateFunc(this::finishUpdate);
-		setStartTicFunc(this::startTic);
+	public void doom(String[] args) {
+		setFunc("L_SetErrorFunc", this::error, 80);
+		setFunc("L_SetInitGraphicsFunc", this::initGraphics);
+		setFunc("L_SetSetPaletteFunc", this::setPalette, 3 * 256);
+		setFunc("L_SetFinishUpdateFunc", this::finishUpdate, SCREENWIDTH * SCREENHEIGHT);
+		setFunc("L_SetStartTicFunc", this::startTic);
 
 		List<String> arguments = new ArrayList<>();
 		arguments.add("");
@@ -277,7 +273,7 @@ public class LibDoomDriver {
 		doomMain();
 	}
 
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) {
 		LibDoomDriver libdoomdriver = new LibDoomDriver();
 		libdoomdriver.doom(args);
 	}
