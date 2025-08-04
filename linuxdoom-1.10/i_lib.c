@@ -99,8 +99,27 @@ void I_StartFrame(void)
 }
 
 
+void (*startTicFunc)(void);
+
+
+DllExport void L_SetStartTicFunc(void(*func)(void))
+{
+	startTicFunc = func;
+}
+
+
 void I_StartTic(void)
 {
+	startTicFunc();
+}
+
+
+DllExport void L_PostEvent(int type, int data1)
+{
+	event_t event;
+	event.type  = type;
+	event.data1 = data1;
+	D_PostEvent(&event);
 }
 
 
@@ -247,13 +266,11 @@ void I_StopSound(int handle)
 
 void I_PauseSong(int handle)
 {
-	IMPLEMENT_ME();
 }
 
 
 void I_ResumeSong(int handle)
 {
-	IMPLEMENT_ME();
 }
 
 
@@ -326,7 +343,11 @@ void I_ReadScreen(byte* scr)
 
 void I_WaitVBL(int count)
 {
-	IMPLEMENT_ME();
+	int start = I_GetTime();
+	int stop = start + count * TICRATE / 70;
+	while (I_GetTime() <= stop)
+	{
+	}
 }
 
 

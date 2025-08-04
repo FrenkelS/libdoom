@@ -25,6 +25,8 @@
 
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
@@ -39,11 +41,12 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -58,6 +61,7 @@ public class LibDoomDriver {
 	private final Linker linker;
 
 	private LibDoomPanel libdoompanel;
+	private final Queue<KeyEvent> keyboardQueue = new ConcurrentLinkedDeque<>();
 
 	public LibDoomDriver() {
 		this.arena = Arena.global();
@@ -119,6 +123,77 @@ public class LibDoomDriver {
 		frame.setLocationRelativeTo(null);
 		frame.setResizable(false);
 		frame.setVisible(true);
+
+		frame.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent keyEvent) {
+				keyboardQueue.add(keyEvent);
+			}
+
+			@Override
+			public void keyPressed(KeyEvent keyEvent) {
+				keyboardQueue.add(keyEvent);
+			}
+		});
+	}
+
+	private int xlatekey(int keyCode) {
+		return switch (keyCode) {
+		case KeyEvent.VK_RIGHT -> 0xae;
+		case KeyEvent.VK_LEFT -> 0xac;
+		case KeyEvent.VK_UP -> 0xad;
+		case KeyEvent.VK_DOWN -> 0xaf;
+		case KeyEvent.VK_ESCAPE -> 27;
+		case KeyEvent.VK_ENTER -> 13;
+		case KeyEvent.VK_TAB -> 9;
+		case KeyEvent.VK_F1 -> (0x80 + 0x3b);
+		case KeyEvent.VK_F2 -> (0x80 + 0x3c);
+		case KeyEvent.VK_F3 -> (0x80 + 0x3d);
+		case KeyEvent.VK_F4 -> (0x80 + 0x3e);
+		case KeyEvent.VK_F5 -> (0x80 + 0x3f);
+		case KeyEvent.VK_F6 -> (0x80 + 0x40);
+		case KeyEvent.VK_F7 -> (0x80 + 0x41);
+		case KeyEvent.VK_F8 -> (0x80 + 0x42);
+		case KeyEvent.VK_F9 -> (0x80 + 0x43);
+		case KeyEvent.VK_F10 -> (0x80 + 0x44);
+		case KeyEvent.VK_F11 -> (0x80 + 0x57);
+		case KeyEvent.VK_F12 -> (0x80 + 0x58);
+		case KeyEvent.VK_BACK_SPACE -> 127;
+		case KeyEvent.VK_PAUSE -> 0xff;
+		case KeyEvent.VK_EQUALS -> 0x3d;
+		case KeyEvent.VK_MINUS -> 0x2d;
+		case KeyEvent.VK_SHIFT -> (0x80 + 0x36);
+		case KeyEvent.VK_CONTROL -> (0x80 + 0x1d);
+		case KeyEvent.VK_ALT -> (0x80 + 0x38);
+		case KeyEvent.VK_ALT_GRAPH -> (0x80 + 0x38);
+		default -> {
+			if ('A' <= keyCode && keyCode <= 'Z') {
+				yield keyCode - 'A' + 'a';
+			} else {
+				yield keyCode;
+			}
+		}
+		};
+	}
+
+	private void startTic() {
+		while (!keyboardQueue.isEmpty()) {
+			KeyEvent keyEvent = keyboardQueue.poll();
+			int type = KeyEvent.KEY_RELEASED == keyEvent.getID() ? 1 : 0;
+			int data1 = xlatekey(keyEvent.getKeyCode());
+			postEvent(type, data1);
+		}
+	}
+
+	private void postEvent(int type, int data1) {
+		try {
+			MemorySegment address = libdoom.findOrThrow("L_PostEvent");
+			FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT);
+			MethodHandle methodHandle = linker.downcallHandle(address, function);
+			methodHandle.invokeExact(type, data1);
+		} catch (Throwable t) {
+			throw new IllegalStateException(t);
+		}
 	}
 
 	private void setPalette(MemorySegment palette) {
@@ -128,7 +203,7 @@ public class LibDoomDriver {
 
 	private void finishUpdate(MemorySegment src) {
 		byte[] bytes = src.toArray(ValueLayout.JAVA_BYTE);
-		libdoompanel.setPixels(bytes);
+		libdoompanel.blitBuffer(bytes);
 	}
 
 	private void setErrorFunc(MemorySegmentConsumer func) throws Throwable {
@@ -159,6 +234,13 @@ public class LibDoomDriver {
 		methodHandle.invokeExact(allocate(func, SCREENWIDTH * SCREENHEIGHT));
 	}
 
+	private void setStartTicFunc(LibDoomRunnable func) throws Throwable {
+		MemorySegment address = libdoom.findOrThrow("L_SetStartTicFunc");
+		FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS);
+		MethodHandle methodHandle = linker.downcallHandle(address, function);
+		methodHandle.invokeExact(allocate(func));
+	}
+
 	private void setMyArgs(List<String> arguments) throws Throwable {
 		int argc = arguments.size();
 		MemorySegment argv = arena.allocate(ValueLayout.ADDRESS, argc);
@@ -186,6 +268,7 @@ public class LibDoomDriver {
 		setInitGraphicsFunc(this::initGraphics);
 		setSetPaletteFunc(this::setPalette);
 		setFinishUpdateFunc(this::finishUpdate);
+		setStartTicFunc(this::startTic);
 
 		List<String> arguments = new ArrayList<>();
 		arguments.add("");
@@ -224,7 +307,7 @@ public class LibDoomDriver {
 			this.img = new BufferedImage(colorModel, raster, false, null);
 		}
 
-		private void setPixels(byte[] bytes) {
+		private void blitBuffer(byte[] bytes) {
 			System.arraycopy(bytes, 0, buffer, 0, buffer.length);
 			repaint();
 		}

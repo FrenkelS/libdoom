@@ -51,12 +51,18 @@ static void FinishUpdate(unsigned char *src)
 }
 
 
+static void StartTic(void)
+{
+}
+
+
 int main(int argc, char** argv)
 { 
 	L_SetErrorFunc(Error);
 	L_SetInitGraphicsFunc(InitGraphics);
 	L_SetSetPaletteFunc(SetPalette);
 	L_SetFinishUpdateFunc(FinishUpdate);
+	L_SetStartTicFunc(StartTic);
 
 	L_SetMyArgs(argc, argv);
 	L_DoomMain();
