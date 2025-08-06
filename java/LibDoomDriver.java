@@ -41,6 +41,8 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,6 +50,10 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineUnavailableException;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
@@ -207,6 +213,35 @@ public class LibDoomDriver {
 		libdoompanel.blitBuffer(bytes);
 	}
 
+	private boolean isSoundAvailable() {
+		try {
+			AudioSystem.getClip();
+			return true;
+		} catch (LineUnavailableException | IllegalArgumentException e) {
+			System.err.println("Sound is unavailable");
+			return false;
+		}
+	}
+
+	private void startSound(MemorySegment memorySegment) {
+		byte[] dmxBytes = memorySegment.toArray(ValueLayout.JAVA_BYTE);
+
+		ByteBuffer bb = ByteBuffer.wrap(dmxBytes);
+		bb.order(ByteOrder.LITTLE_ENDIAN);
+		bb.getShort(); // format number (must be 3)
+		short sampleRate = bb.getShort(); // usually 11025
+		int numberOfSamples = Math.min(bb.getInt(), dmxBytes.length - 8);
+		AudioFormat audioFormat = new AudioFormat(sampleRate, 8, 1, false, false);
+
+		try {
+			Clip clip = AudioSystem.getClip();
+			clip.open(audioFormat, dmxBytes, 0x18, numberOfSamples - 16 - 16);
+			clip.start();
+		} catch (LineUnavailableException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
 	private void setFunc(String name, LibDoomRunnable func) {
 		try {
 			MemorySegment address = libdoom.findOrThrow(name);
@@ -265,6 +300,10 @@ public class LibDoomDriver {
 		setFunc("L_SetSetPaletteFunc", this::setPalette, 3 * 256);
 		setFunc("L_SetFinishUpdateFunc", this::finishUpdate, SCREENWIDTH * SCREENHEIGHT);
 		setFunc("L_SetStartTicFunc", this::startTic);
+
+		MemorySegmentConsumer startSoundFunc = isSoundAvailable() ? this::startSound : _ -> {
+		};
+		setFunc("L_SetStartSoundFunc", startSoundFunc, 57072); // size of DSBOSSIT, the largest sound lump
 
 		List<String> arguments = new ArrayList<>();
 		arguments.add("");

@@ -4,6 +4,7 @@
 // $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
+// Copyright (C) 2025 by Frenkel Smeijers
 //
 // This source is available for distribution and/or modification
 // only under the terms of the DOOM Source Code License as
@@ -364,21 +365,15 @@ S_StartSoundAtVolume
   if (sfx->lumpnum < 0)
     sfx->lumpnum = I_GetSfxLumpNum(sfx);
 
-#ifndef SNDSRV
   // cache data if necessary
   if (!sfx->data)
   {
-    fprintf( stderr,
-	     "S_StartSoundAtVolume: 16bit and not pre-cached - wtf?\n");
-
-    // DOS remains, 8bit handling
-    //sfx->data = (void *) W_CacheLumpNum(sfx->lumpnum, PU_MUSIC);
+    sfx->data = (void *) W_CacheLumpNum(sfx->lumpnum, PU_MUSIC);
     // fprintf( stderr,
     //	     "S_StartSoundAtVolume: loading %d (lump %d) : 0x%x\n",
     //       sfx_id, sfx->lumpnum, (int)sfx->data );
     
   }
-#endif
   
   // increase the usefulness
   if (sfx->usefulness++ < 0)
@@ -386,8 +381,8 @@ S_StartSoundAtVolume
   
   // Assigns the handle to one of the channels in the
   //  mix/output buffer.
-  channels[cnum].handle = I_StartSound(sfx_id,
-				       /*sfx->data,*/
+  channels[cnum].handle = I_StartSound(
+				       sfx->data,
 				       volume,
 				       sep,
 				       pitch,
@@ -523,6 +518,7 @@ void S_UpdateSounds(void* listener_p)
     int		volume;
     int		sep;
     int		pitch;
+    int		i;
     sfxinfo_t*	sfx;
     channel_t*	c;
     
@@ -531,9 +527,7 @@ void S_UpdateSounds(void* listener_p)
 
     
     // Clean up unused data.
-    // This is currently not done for 16bit (sounds cached static).
-    // DOS 8bit remains. 
-    /*if (gametic > nextcleanup)
+    if (gametic > nextcleanup)
     {
 	for (i=1 ; i<NUMSFX ; i++)
 	{
@@ -548,7 +542,7 @@ void S_UpdateSounds(void* listener_p)
 	    }
 	}
 	nextcleanup = gametic + 15;
-    }*/
+    }
     
     for (cnum=0 ; cnum<numChannels ; cnum++)
     {

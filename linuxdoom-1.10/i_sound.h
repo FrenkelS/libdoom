@@ -4,6 +4,7 @@
 // $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
+// Copyright (C) 2025 by id Frenkel Smeijers
 //
 // This source is available for distribution and/or modification
 // only under the terms of the DOOM Source Code License as
@@ -62,7 +63,7 @@ int I_GetSfxLumpNum (sfxinfo_t* sfxinfo );
 // Starts a sound in a particular sound channel.
 int
 I_StartSound
-( int		id,
+( void		*data,
   int		vol,
   int		sep,
   int		pitch,

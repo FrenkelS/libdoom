@@ -246,9 +246,19 @@ int I_GetSfxLumpNum(sfxinfo_t* sfxinfo)
 }
 
 
-int I_StartSound(int id, int vol, int sep, int pitch, int priority)
+void (*startSoundFunc)(unsigned char*);
+
+
+DllExport void L_SetStartSoundFunc(void(*func)(unsigned char*))
 {
-	return id;
+	startSoundFunc = func;
+}
+
+
+int I_StartSound(void *data, int vol, int sep, int pitch, int priority)
+{
+	startSoundFunc(data);
+	return 0;
 }
 
 

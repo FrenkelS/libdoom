@@ -37,6 +37,8 @@ DllExport void L_SetInitGraphicsFunc(void(*func)(void));
 DllExport void L_SetSetPaletteFunc(void(*func)(unsigned char*));
 DllExport void L_SetFinishUpdateFunc(void(*func)(unsigned char*));
 DllExport void L_SetStartTicFunc(void(*func)(void));
+DllExport void L_SetStartSoundFunc(void(*func)(unsigned char*));
+
 DllExport void L_PostEvent(int type, int data1);
 DllExport void L_SetMyArgs(int argc, char** argv);
 DllExport void L_DoomMain(void);
