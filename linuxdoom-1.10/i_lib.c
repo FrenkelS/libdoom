@@ -212,14 +212,28 @@ void I_SetMusicVolume(int volume)
 }
 
 
+static void *musicData;
+
+
 int I_RegisterSong(void *data)
 {
+	musicData = data;
 	return 0;
+}
+
+
+void (*playSongFunc)(unsigned char*);
+
+
+DllExport void L_SetPlaySongFunc(void(*func)(unsigned char*))
+{
+	playSongFunc = func;
 }
 
 
 void I_PlaySong(int handle, int looping)
 {
+	playSongFunc(musicData);
 }
 
 

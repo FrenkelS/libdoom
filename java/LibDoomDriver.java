@@ -32,6 +32,9 @@ import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -50,6 +53,10 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import javax.sound.midi.InvalidMidiDataException;
+import javax.sound.midi.MidiSystem;
+import javax.sound.midi.MidiUnavailableException;
+import javax.sound.midi.Sequencer;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -70,6 +77,7 @@ public class LibDoomDriver {
 
 	private LibDoomPanel libdoompanel;
 	private final Queue<KeyEvent> keyboardQueue = new ConcurrentLinkedDeque<>();
+	private Sequencer midiSequencer;
 
 	public LibDoomDriver() {
 		this.arena = Arena.global();
@@ -225,6 +233,16 @@ public class LibDoomDriver {
 		}
 	}
 
+	private boolean isMusicAvailable() {
+		try {
+			this.midiSequencer = MidiSystem.getSequencer();
+			return true;
+		} catch (MidiUnavailableException _) {
+			System.err.println("Music is unavailable");
+			return false;
+		}
+	}
+
 	private void startSound(MemorySegment memorySegment) {
 		byte[] dmxBytes = memorySegment.toArray(ValueLayout.JAVA_BYTE);
 
@@ -246,6 +264,28 @@ public class LibDoomDriver {
 			clip.open(audioFormat, dmxBytes, 0x18, numberOfSamples - 16 - 16);
 			clip.start();
 		} catch (LineUnavailableException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	private void playSong(MemorySegment memorySegment) {
+		InputStream midi;
+		byte[] musOrMidi = memorySegment.toArray(ValueLayout.JAVA_BYTE);
+		byte[] header = Arrays.copyOf(musOrMidi, 3);
+		if ("MUS".equals(new String(header))) {
+			// TODO convert to MIDI
+			return;
+		}
+
+		midi = new ByteArrayInputStream(musOrMidi);
+
+		try {
+			midiSequencer.close();
+
+			midiSequencer.setSequence(MidiSystem.getSequence(midi));
+			midiSequencer.open();
+			midiSequencer.start();
+		} catch (MidiUnavailableException | InvalidMidiDataException | IOException e) {
 			throw new IllegalStateException(e);
 		}
 	}
@@ -311,7 +351,11 @@ public class LibDoomDriver {
 
 		MemorySegmentConsumer startSoundFunc = isSoundAvailable() ? this::startSound : _ -> {
 		};
+		MemorySegmentConsumer playSongFunc = isMusicAvailable() ? this::playSong : _ -> {
+		};
 		setFunc("L_SetStartSoundFunc", startSoundFunc, 57072); // size of DSBOSSIT, the largest sound lump
+		setFunc("L_SetPlaySongFunc", playSongFunc, 81574); // size of D_DDTBL2 and D_DDTBL3,
+															// the largest music files in MIDI format
 
 		List<String> arguments = new ArrayList<>();
 		arguments.add("");

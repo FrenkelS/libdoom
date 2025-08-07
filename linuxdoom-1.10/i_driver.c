@@ -55,6 +55,7 @@ int main(int argc, char** argv)
 	L_SetFinishUpdateFunc(noopConsumer);
 	L_SetStartTicFunc(noopRunnable);
 	L_SetStartSoundFunc(noopConsumer);
+	L_SetPlaySongFunc(noopConsumer);
 
 	L_SetMyArgs(argc, argv);
 	L_DoomMain();
