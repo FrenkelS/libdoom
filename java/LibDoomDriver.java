@@ -53,9 +53,11 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineUnavailableException;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.WindowConstants;
 
 public class LibDoomDriver {
 
@@ -123,7 +125,7 @@ public class LibDoomDriver {
 		this.libdoompanel = new LibDoomPanel();
 
 		JFrame frame = new JFrame("libdoom");
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		frame.add(libdoompanel);
 		frame.pack();
 		frame.setLocationRelativeTo(null);
@@ -215,9 +217,9 @@ public class LibDoomDriver {
 
 	private boolean isSoundAvailable() {
 		try {
-			AudioSystem.getClip();
+			AudioSystem.getClip().close();
 			return true;
-		} catch (LineUnavailableException | IllegalArgumentException e) {
+		} catch (LineUnavailableException | IllegalArgumentException _) {
 			System.err.println("Sound is unavailable");
 			return false;
 		}
@@ -235,6 +237,12 @@ public class LibDoomDriver {
 
 		try {
 			Clip clip = AudioSystem.getClip();
+			clip.addLineListener(event -> {
+				if (LineEvent.Type.STOP == event.getType()) {
+					clip.close();
+				}
+
+			});
 			clip.open(audioFormat, dmxBytes, 0x18, numberOfSamples - 16 - 16);
 			clip.start();
 		} catch (LineUnavailableException e) {
