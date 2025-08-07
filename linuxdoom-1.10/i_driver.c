@@ -36,36 +36,28 @@ static void Error(char *error)
 }
 
 
-static void InitGraphics(void)
+static void noopRunnable(void)
 {
 }
 
 
-static void SetPalette(unsigned char *palette)
-{
-}
-
-
-static void FinishUpdate(unsigned char *src)
-{
-}
-
-
-static void StartTic(void)
+static void noopConsumer(unsigned char *bytes)
 {
 }
 
 
 int main(int argc, char** argv)
-{ 
+{
 	L_SetErrorFunc(Error);
-	L_SetInitGraphicsFunc(InitGraphics);
-	L_SetSetPaletteFunc(SetPalette);
-	L_SetFinishUpdateFunc(FinishUpdate);
-	L_SetStartTicFunc(StartTic);
+
+	L_SetInitGraphicsFunc(noopRunnable);
+	L_SetSetPaletteFunc(noopConsumer);
+	L_SetFinishUpdateFunc(noopConsumer);
+	L_SetStartTicFunc(noopRunnable);
+	L_SetStartSoundFunc(noopConsumer);
 
 	L_SetMyArgs(argc, argv);
 	L_DoomMain();
 
 	return 0;
-} 
+}
