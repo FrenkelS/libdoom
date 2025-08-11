@@ -669,12 +669,9 @@ S_ChangeMusic
 	music->lumpnum = W_GetNumForName(namebuf);
     }
 
-    // load & register it
+    // load & play it
     music->data = (void *) W_CacheLumpNum(music->lumpnum, PU_MUSIC);
-    music->handle = I_RegisterSong(music->data);
-
-    // play it
-    I_PlaySong(music->handle, looping);
+    music->handle = I_PlaySong(music->data, looping);
 
     mus_playing = music;
 }
@@ -688,7 +685,6 @@ void S_StopMusic(void)
 	    I_ResumeSong(mus_playing->handle);
 
 	I_StopSong(mus_playing->handle);
-	I_UnRegisterSong(mus_playing->handle);
 	Z_ChangeTag(mus_playing->data, PU_CACHE);
 	
 	mus_playing->data = 0;

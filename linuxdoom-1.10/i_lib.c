@@ -212,16 +212,6 @@ void I_SetMusicVolume(int volume)
 }
 
 
-static void *musicData;
-
-
-int I_RegisterSong(void *data)
-{
-	musicData = data;
-	return 0;
-}
-
-
 void (*playSongFunc)(unsigned char*);
 
 
@@ -231,9 +221,10 @@ DllExport void L_SetPlaySongFunc(void(*func)(unsigned char*))
 }
 
 
-void I_PlaySong(int handle, int looping)
+int I_PlaySong(void *data, int looping)
 {
-	playSongFunc(musicData);
+	playSongFunc(data);
+	return 0;
 }
 
 
@@ -243,11 +234,6 @@ void I_SubmitSound(void)
 
 
 void I_StopSong(int handle)
-{
-}
-
-
-void I_UnRegisterSong(int handle)
 {
 }
 
