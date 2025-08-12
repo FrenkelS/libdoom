@@ -105,6 +105,7 @@ void I_ResumeSong(int handle);
 int
 I_PlaySong
 ( void		*data,
+  int		len,
   int		looping );
 // Stops a song over 3 seconds.
 void I_StopSong(int handle);

@@ -38,6 +38,9 @@
 #include "v_video.h"
 #include "w_wad.h"
 
+#include "memio.h"
+#include "mus2mid.h"
+
 
 #define IMPLEMENT_ME() I_Error("Implement me: %s: %s @ %i\n", __FILE__, __func__ , __LINE__)
 
@@ -221,9 +224,32 @@ DllExport void L_SetPlaySongFunc(void(*func)(unsigned char*))
 }
 
 
-int I_PlaySong(void *data, int looping)
+int I_PlaySong(void *data, int len, int looping)
 {
-	playSongFunc(data);
+	if (memcmp(data, "MUS", 3) == 0)
+	{
+		MEMFILE *instream  = mem_fopen_read(data, len);
+		MEMFILE *outstream = mem_fopen_write();
+
+		boolean failed = mus2mid(instream, outstream);
+
+		if (!failed)
+		{
+			void *outbuf;
+			size_t outbuf_len;
+
+			mem_get_buf(outstream, &outbuf, &outbuf_len);
+			playSongFunc(outbuf);
+		}
+
+		mem_fclose(instream);
+		mem_fclose(outstream);
+	}
+	else
+	{
+		playSongFunc(data);
+	}
+
 	return 0;
 }
 

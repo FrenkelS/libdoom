@@ -269,19 +269,10 @@ public class LibDoomDriver {
 	}
 
 	private void playSong(MemorySegment memorySegment) {
-		InputStream midi;
-		byte[] musOrMidi = memorySegment.toArray(ValueLayout.JAVA_BYTE);
-		byte[] header = Arrays.copyOf(musOrMidi, 3);
-		if ("MUS".equals(new String(header))) {
-			// TODO convert to MIDI
-			return;
-		}
-
-		midi = new ByteArrayInputStream(musOrMidi);
-
 		try {
 			midiSequencer.close();
 
+			InputStream midi = new ByteArrayInputStream(memorySegment.toArray(ValueLayout.JAVA_BYTE));
 			midiSequencer.setSequence(MidiSystem.getSequence(midi));
 			midiSequencer.open();
 			midiSequencer.start();

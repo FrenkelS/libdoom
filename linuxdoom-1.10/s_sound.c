@@ -671,7 +671,7 @@ S_ChangeMusic
 
     // load & play it
     music->data = (void *) W_CacheLumpNum(music->lumpnum, PU_MUSIC);
-    music->handle = I_PlaySong(music->data, looping);
+    music->handle = I_PlaySong(music->data, W_LumpLength(music->lumpnum), looping);
 
     mus_playing = music;
 }

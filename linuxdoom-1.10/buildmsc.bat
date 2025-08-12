@@ -27,6 +27,8 @@ mkdir windows
 @set GLOBOBJS=%GLOBOBJS% m_misc.c
 @set GLOBOBJS=%GLOBOBJS% m_random.c
 @set GLOBOBJS=%GLOBOBJS% m_swap.c
+@set GLOBOBJS=%GLOBOBJS% memio.c
+@set GLOBOBJS=%GLOBOBJS% mus2mid.c
 @set GLOBOBJS=%GLOBOBJS% p_ceilng.c
 @set GLOBOBJS=%GLOBOBJS% p_doors.c
 @set GLOBOBJS=%GLOBOBJS% p_enemy.c
