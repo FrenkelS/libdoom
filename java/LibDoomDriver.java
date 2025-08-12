@@ -27,6 +27,10 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
@@ -77,6 +81,7 @@ public class LibDoomDriver {
 
 	private LibDoomPanel libdoompanel;
 	private final Queue<KeyEvent> keyboardQueue = new ConcurrentLinkedDeque<>();
+	private final Queue<MouseEvent> mouseQueue = new ConcurrentLinkedDeque<>();
 	private Sequencer midiSequencer;
 
 	public LibDoomDriver() {
@@ -152,6 +157,19 @@ public class LibDoomDriver {
 				keyboardQueue.add(keyEvent);
 			}
 		});
+
+		MouseAdapter mouseAdapter = new MouseAdapter() {
+			@Override
+			public void mousePressed(MouseEvent mouseEvent) {
+				mouseQueue.add(mouseEvent);
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent mouseEvent) {
+				mouseQueue.add(mouseEvent);
+			}
+		};
+		frame.addMouseListener(mouseAdapter);
 	}
 
 	private int xlatekey(int keyCode) {
@@ -199,6 +217,12 @@ public class LibDoomDriver {
 			int type = KeyEvent.KEY_RELEASED == keyEvent.getID() ? 1 : 0;
 			int data1 = xlatekey(keyEvent.getKeyCode());
 			postEvent(type, data1);
+		}
+
+		while (!mouseQueue.isEmpty()) {
+			MouseEvent mouseEvent = mouseQueue.poll();
+			int data1 = MouseEvent.MOUSE_PRESSED == mouseEvent.getID() ? 1 << (mouseEvent.getButton() - 1) : 0;
+			postEvent(2, data1);
 		}
 	}
 
