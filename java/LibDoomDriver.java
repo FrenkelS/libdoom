@@ -274,6 +274,7 @@ public class LibDoomDriver {
 
 			InputStream midi = new ByteArrayInputStream(memorySegment.toArray(ValueLayout.JAVA_BYTE));
 			midiSequencer.setSequence(MidiSystem.getSequence(midi));
+			midiSequencer.setLoopCount(Sequencer.LOOP_CONTINUOUSLY);
 			midiSequencer.open();
 			midiSequencer.start();
 		} catch (MidiUnavailableException | InvalidMidiDataException | IOException e) {
@@ -306,10 +307,8 @@ public class LibDoomDriver {
 	private void setMyArgs(List<String> arguments) {
 		int argc = arguments.size();
 		MemorySegment argv = arena.allocate(ValueLayout.ADDRESS, argc);
-		int i = 0;
-		for (String argument : arguments) {
-			argv.setAtIndex(ValueLayout.ADDRESS, i, arena.allocateFrom(argument));
-			i++;
+		for (int i = 0; i < argc; i++) {
+			argv.setAtIndex(ValueLayout.ADDRESS, i, arena.allocateFrom(arguments.get(i)));
 		}
 
 		try {
