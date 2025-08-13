@@ -217,12 +217,24 @@ void I_SetMusicVolume(int volume)
 }
 
 
+static void noopConsumer(unsigned char *bytes)
+{
+}
+
+
 void (*playSongFunc)(unsigned char*);
 
 
 DllExport void L_SetPlaySongFunc(void(*func)(unsigned char*))
 {
-	playSongFunc = func;
+	if (M_CheckParm("-nosound") || M_CheckParm("-nomusic"))
+	{
+		playSongFunc = noopConsumer;
+	}
+	else
+	{
+		playSongFunc = func;
+	}
 }
 
 
@@ -279,7 +291,14 @@ void (*startSoundFunc)(unsigned char*);
 
 DllExport void L_SetStartSoundFunc(void(*func)(unsigned char*))
 {
-	startSoundFunc = func;
+	if (M_CheckParm("-nosound") || M_CheckParm("-nosfx"))
+	{
+		startSoundFunc = noopConsumer;
+	}
+	else
+	{
+		startSoundFunc = func;
+	}
 }
 
 

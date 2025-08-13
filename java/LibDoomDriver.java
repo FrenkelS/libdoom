@@ -29,8 +29,6 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
@@ -168,8 +166,14 @@ public class LibDoomDriver {
 			public void mouseReleased(MouseEvent mouseEvent) {
 				mouseQueue.add(mouseEvent);
 			}
+
+			@Override
+			public void mouseMoved(MouseEvent mouseEvent) {
+				mouseQueue.add(mouseEvent);
+			}
 		};
 		frame.addMouseListener(mouseAdapter);
+		frame.addMouseMotionListener(mouseAdapter);
 	}
 
 	private int xlatekey(int keyCode) {
@@ -221,8 +225,13 @@ public class LibDoomDriver {
 
 		while (!mouseQueue.isEmpty()) {
 			MouseEvent mouseEvent = mouseQueue.poll();
-			int data1 = MouseEvent.MOUSE_PRESSED == mouseEvent.getID() ? 1 << (mouseEvent.getButton() - 1) : 0;
-			postEvent(2, data1);
+
+			switch (mouseEvent.getID()) {
+			case MouseEvent.MOUSE_PRESSED -> postEvent(2, 1 << (mouseEvent.getButton() - 1));
+			case MouseEvent.MOUSE_RELEASED -> postEvent(2, 0);
+			default -> {
+			}
+			}
 		}
 	}
 
@@ -357,6 +366,11 @@ public class LibDoomDriver {
 	}
 
 	public void doom(String[] args) {
+		List<String> arguments = new ArrayList<>();
+		arguments.add("");
+		arguments.addAll(Arrays.asList(args));
+		setMyArgs(arguments);
+
 		setFunc("L_SetErrorFunc", this::error, 80);
 		setFunc("L_SetInitGraphicsFunc", this::initGraphics);
 		setFunc("L_SetSetPaletteFunc", this::setPalette, 3 * 256);
@@ -371,10 +385,6 @@ public class LibDoomDriver {
 		setFunc("L_SetPlaySongFunc", playSongFunc, 81574); // size of D_DDTBL2 and D_DDTBL3,
 															// the largest music files in MIDI format
 
-		List<String> arguments = new ArrayList<>();
-		arguments.add("");
-		arguments.addAll(Arrays.asList(args));
-		setMyArgs(arguments);
 		doomMain();
 	}
 
