@@ -117,12 +117,12 @@ void I_StartTic(void)
 }
 
 
-DllExport void L_PostEvent(int type, int data1)
+DllExport void L_PostEvent(int type, int data1, int data2)
 {
 	event_t event;
 	event.type  = type;
 	event.data1 = data1;
-	event.data2 = 0;
+	event.data2 = data2;
 	event.data3 = 0;
 	D_PostEvent(&event);
 }

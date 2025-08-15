@@ -80,6 +80,7 @@ public class LibDoomDriver {
 	private LibDoomPanel libdoompanel;
 	private final Queue<KeyEvent> keyboardQueue = new ConcurrentLinkedDeque<>();
 	private final Queue<MouseEvent> mouseQueue = new ConcurrentLinkedDeque<>();
+	private int mouseButtons = 0;
 	private Sequencer midiSequencer;
 
 	public LibDoomDriver() {
@@ -171,6 +172,11 @@ public class LibDoomDriver {
 			public void mouseMoved(MouseEvent mouseEvent) {
 				mouseQueue.add(mouseEvent);
 			}
+
+			@Override
+			public void mouseDragged(MouseEvent mouseEvent) {
+				mouseQueue.add(mouseEvent);
+			}
 		};
 		frame.addMouseListener(mouseAdapter);
 		frame.addMouseMotionListener(mouseAdapter);
@@ -216,31 +222,53 @@ public class LibDoomDriver {
 	}
 
 	private void startTic() {
-		while (!keyboardQueue.isEmpty()) {
-			KeyEvent keyEvent = keyboardQueue.poll();
-			int type = KeyEvent.KEY_RELEASED == keyEvent.getID() ? 1 : 0;
-			int data1 = xlatekey(keyEvent.getKeyCode());
-			postEvent(type, data1);
-		}
-
+		MouseEvent[] mouseMovedEvents = new MouseEvent[2];
+		int i = 0;
+		boolean mouseButtonChanged = false;
 		while (!mouseQueue.isEmpty()) {
 			MouseEvent mouseEvent = mouseQueue.poll();
 
 			switch (mouseEvent.getID()) {
-			case MouseEvent.MOUSE_PRESSED -> postEvent(2, 1 << (mouseEvent.getButton() - 1));
-			case MouseEvent.MOUSE_RELEASED -> postEvent(2, 0);
-			default -> {
+			case MouseEvent.MOUSE_PRESSED -> {
+				mouseButtons |= 1 << (mouseEvent.getButton() - 1);
+				mouseButtonChanged = true;
 			}
+			case MouseEvent.MOUSE_RELEASED -> {
+				mouseButtons &= ~(1 << (mouseEvent.getButton() - 1));
+				mouseButtonChanged = true;
 			}
+			case MouseEvent.MOUSE_MOVED, MouseEvent.MOUSE_DRAGGED -> {
+				mouseMovedEvents[i] = mouseEvent;
+				i = 1;
+			}
+			default -> throw new IllegalStateException("Unsupported MouseEvent " + mouseEvent.getID());
+			}
+		}
+
+		if (mouseMovedEvents[1] != null) {
+			MouseEvent first = mouseMovedEvents[0];
+			MouseEvent last = mouseMovedEvents[1];
+			int data2 = (last.getX() - first.getX()) * 10;
+			postEvent(2, mouseButtons, data2);
+		} else if (mouseButtonChanged) {
+			postEvent(2, mouseButtons, 0);
+		}
+
+		while (!keyboardQueue.isEmpty()) {
+			KeyEvent keyEvent = keyboardQueue.poll();
+			int type = KeyEvent.KEY_RELEASED == keyEvent.getID() ? 1 : 0;
+			int data1 = xlatekey(keyEvent.getKeyCode());
+			postEvent(type, data1, 0);
 		}
 	}
 
-	private void postEvent(int type, int data1) {
+	private void postEvent(int type, int data1, int data2) {
 		try {
 			MemorySegment address = libdoom.findOrThrow("L_PostEvent");
-			FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT);
+			FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT,
+					ValueLayout.JAVA_INT);
 			MethodHandle methodHandle = linker.downcallHandle(address, function);
-			methodHandle.invokeExact(type, data1);
+			methodHandle.invokeExact(type, data1, data2);
 		} catch (Throwable t) {
 			throw new IllegalStateException(t);
 		}
