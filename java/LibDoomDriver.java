@@ -80,6 +80,7 @@ public class LibDoomDriver {
 
 	private LibDoomPanel libdoompanel;
 	private int scale;
+	private boolean mouseEnabled;
 	private final Queue<KeyEvent> keyboardQueue = new ConcurrentLinkedDeque<>();
 	private final Queue<MouseEvent> mouseQueue = new ConcurrentLinkedDeque<>();
 	private int mouseButtons = 0;
@@ -159,29 +160,31 @@ public class LibDoomDriver {
 			}
 		});
 
-		MouseAdapter mouseAdapter = new MouseAdapter() {
-			@Override
-			public void mousePressed(MouseEvent mouseEvent) {
-				mouseQueue.add(mouseEvent);
-			}
+		if (mouseEnabled) {
+			MouseAdapter mouseAdapter = new MouseAdapter() {
+				@Override
+				public void mousePressed(MouseEvent mouseEvent) {
+					mouseQueue.add(mouseEvent);
+				}
 
-			@Override
-			public void mouseReleased(MouseEvent mouseEvent) {
-				mouseQueue.add(mouseEvent);
-			}
+				@Override
+				public void mouseReleased(MouseEvent mouseEvent) {
+					mouseQueue.add(mouseEvent);
+				}
 
-			@Override
-			public void mouseMoved(MouseEvent mouseEvent) {
-				mouseQueue.add(mouseEvent);
-			}
+				@Override
+				public void mouseMoved(MouseEvent mouseEvent) {
+					mouseQueue.add(mouseEvent);
+				}
 
-			@Override
-			public void mouseDragged(MouseEvent mouseEvent) {
-				mouseQueue.add(mouseEvent);
-			}
-		};
-		frame.addMouseListener(mouseAdapter);
-		frame.addMouseMotionListener(mouseAdapter);
+				@Override
+				public void mouseDragged(MouseEvent mouseEvent) {
+					mouseQueue.add(mouseEvent);
+				}
+			};
+			frame.addMouseListener(mouseAdapter);
+			frame.addMouseMotionListener(mouseAdapter);
+		}
 	}
 
 	private int xlatekey(int keyCode) {
@@ -410,6 +413,8 @@ public class LibDoomDriver {
 		} else {
 			this.scale = 1;
 		}
+
+		this.mouseEnabled = !arguments.contains("-nomouse");
 
 		setFunc("L_SetErrorFunc", this::error, 80);
 		setFunc("L_SetInitGraphicsFunc", this::initGraphics);
