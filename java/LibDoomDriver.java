@@ -37,6 +37,7 @@ import java.awt.image.WritableRaster;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serial;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -78,6 +79,7 @@ public class LibDoomDriver {
 	private final Linker linker;
 
 	private LibDoomPanel libdoompanel;
+	private int scale;
 	private final Queue<KeyEvent> keyboardQueue = new ConcurrentLinkedDeque<>();
 	private final Queue<MouseEvent> mouseQueue = new ConcurrentLinkedDeque<>();
 	private int mouseButtons = 0;
@@ -134,7 +136,7 @@ public class LibDoomDriver {
 	}
 
 	private void initGraphics() {
-		this.libdoompanel = new LibDoomPanel();
+		this.libdoompanel = new LibDoomPanel(scale);
 
 		JFrame frame = new JFrame("libdoom");
 		frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -399,6 +401,16 @@ public class LibDoomDriver {
 		arguments.addAll(Arrays.asList(args));
 		setMyArgs(arguments);
 
+		if (arguments.contains("-4")) {
+			this.scale = 4;
+		} else if (arguments.contains("-3")) {
+			this.scale = 3;
+		} else if (arguments.contains("-2")) {
+			this.scale = 2;
+		} else {
+			this.scale = 1;
+		}
+
 		setFunc("L_SetErrorFunc", this::error, 80);
 		setFunc("L_SetInitGraphicsFunc", this::initGraphics);
 		setFunc("L_SetSetPaletteFunc", this::setPalette, 3 * 256);
@@ -423,14 +435,21 @@ public class LibDoomDriver {
 
 	private static class LibDoomPanel extends JPanel {
 
+		@Serial
 		private static final long serialVersionUID = 5193832661212316322L;
 
 		private BufferedImage img;
-		private byte[] buffer = new byte[SCREENWIDTH * SCREENHEIGHT];
+		private final int scale;
+		private final byte[] buffer;
+
+		private LibDoomPanel(int scale) {
+			this.scale = scale;
+			this.buffer = new byte[SCREENWIDTH * scale * SCREENHEIGHT * scale];
+		}
 
 		@Override
 		public Dimension getPreferredSize() {
-			return new Dimension(SCREENWIDTH, SCREENHEIGHT);
+			return new Dimension(SCREENWIDTH * scale, SCREENHEIGHT * scale);
 		}
 
 		@Override
@@ -441,13 +460,33 @@ public class LibDoomDriver {
 		private void setPalette(byte[] bytes) {
 			IndexColorModel colorModel = new IndexColorModel(8, 256, bytes, 0, false);
 			DataBufferByte dataBuffer = new DataBufferByte(buffer, buffer.length);
-			WritableRaster raster = Raster.createInterleavedRaster(dataBuffer, SCREENWIDTH, SCREENHEIGHT, SCREENWIDTH,
-					1, new int[] { 0 }, null);
+			WritableRaster raster = Raster.createInterleavedRaster(dataBuffer, SCREENWIDTH * scale,
+					SCREENHEIGHT * scale, SCREENWIDTH * scale, 1, new int[] { 0 }, null);
 			this.img = new BufferedImage(colorModel, raster, false, null);
 		}
 
 		private void blitBuffer(byte[] bytes) {
-			System.arraycopy(bytes, 0, buffer, 0, buffer.length);
+			if (scale == 1) {
+				System.arraycopy(bytes, 0, buffer, 0, buffer.length);
+			} else {
+				for (int y = 0; y < SCREENHEIGHT; y++) {
+					int startOfScanline = y * scale * SCREENWIDTH * scale;
+
+					for (int x = 0; x < SCREENWIDTH; x++) {
+						byte pixel = bytes[y * SCREENWIDTH + x];
+
+						for (int dx = 0; dx < scale; dx++) {
+							buffer[startOfScanline + x * scale + dx] = pixel;
+						}
+					}
+
+					for (int dy = 1; dy < scale; dy++) {
+						System.arraycopy(buffer, startOfScanline, buffer, startOfScanline + dy * SCREENWIDTH * scale,
+								SCREENWIDTH * scale);
+					}
+				}
+			}
+
 			repaint();
 		}
 	}
