@@ -23,12 +23,16 @@
  *
  *-----------------------------------------------------------------------------*/
 
+import java.awt.AWTException;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Point;
+import java.awt.Robot;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
@@ -74,6 +78,10 @@ public class LibDoomDriver {
 	private static final int SCREENWIDTH = 320;
 	private static final int SCREENHEIGHT = 200;
 
+	private static final int EV_KEYDOWN = 0;
+	private static final int EV_KEYUP = 1;
+	private static final int EV_MOUSE = 2;
+
 	private final Arena arena;
 	private final SymbolLookup libdoom;
 	private final Linker linker;
@@ -81,8 +89,9 @@ public class LibDoomDriver {
 	private LibDoomPanel libdoompanel;
 	private int scale;
 	private boolean mouseEnabled;
-	private final Queue<KeyEvent> keyboardQueue = new ConcurrentLinkedDeque<>();
-	private final Queue<MouseEvent> mouseQueue = new ConcurrentLinkedDeque<>();
+	private final Queue<KeyEvent> keyboardEventQueue = new ConcurrentLinkedDeque<>();
+	private final Queue<Integer> mouseMotionEventQueue = new ConcurrentLinkedDeque<>();
+	private final Queue<MouseEvent> mouseButtonEventQueue = new ConcurrentLinkedDeque<>();
 	private int mouseButtons = 0;
 	private Sequencer midiSequencer;
 
@@ -151,39 +160,67 @@ public class LibDoomDriver {
 		frame.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyReleased(KeyEvent keyEvent) {
-				keyboardQueue.add(keyEvent);
+				keyboardEventQueue.add(keyEvent);
 			}
 
 			@Override
 			public void keyPressed(KeyEvent keyEvent) {
-				keyboardQueue.add(keyEvent);
+				keyboardEventQueue.add(keyEvent);
 			}
 		});
 
 		if (mouseEnabled) {
-			MouseAdapter mouseAdapter = new MouseAdapter() {
-				@Override
-				public void mousePressed(MouseEvent mouseEvent) {
-					mouseQueue.add(mouseEvent);
-				}
+			// hide mouse cursor
+			frame.setCursor(frame.getToolkit().createCustomCursor(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB),
+					new Point(), null));
 
-				@Override
-				public void mouseReleased(MouseEvent mouseEvent) {
-					mouseQueue.add(mouseEvent);
-				}
+			Robot robot;
+			try {
+				robot = new Robot();
+			} catch (AWTException e) {
+				throw new IllegalStateException(e);
+			}
 
+			Point frameCenter = new Point(frame.getWidth() / 2, frame.getHeight() / 2);
+			// center mouse
+			Point frameLocation = frame.getLocationOnScreen();
+			robot.mouseMove(frameLocation.x + frameCenter.x, frameLocation.y + frameCenter.y);
+
+			frame.addMouseMotionListener(new MouseMotionAdapter() {
 				@Override
 				public void mouseMoved(MouseEvent mouseEvent) {
-					mouseQueue.add(mouseEvent);
+					handleMouseMovedEvent(mouseEvent);
 				}
 
 				@Override
 				public void mouseDragged(MouseEvent mouseEvent) {
-					mouseQueue.add(mouseEvent);
+					handleMouseMovedEvent(mouseEvent);
 				}
-			};
-			frame.addMouseListener(mouseAdapter);
-			frame.addMouseMotionListener(mouseAdapter);
+
+				private void handleMouseMovedEvent(MouseEvent mouseEvent) {
+					int dx = mouseEvent.getX() - frameCenter.x;
+
+					// center mouse
+					Point frameLocation = frame.getLocationOnScreen();
+					robot.mouseMove(frameLocation.x + frameCenter.x, frameLocation.y + frameCenter.y);
+
+					if (dx != 0) {
+						mouseMotionEventQueue.add(dx);
+					}
+				}
+			});
+
+			frame.addMouseListener(new MouseAdapter() {
+				@Override
+				public void mousePressed(MouseEvent mouseEvent) {
+					mouseButtonEventQueue.add(mouseEvent);
+				}
+
+				@Override
+				public void mouseReleased(MouseEvent mouseEvent) {
+					mouseButtonEventQueue.add(mouseEvent);
+				}
+			});
 		}
 	}
 
@@ -227,43 +264,30 @@ public class LibDoomDriver {
 	}
 
 	private void startTic() {
-		MouseEvent[] mouseMovedEvents = new MouseEvent[2];
-		int i = 0;
-		boolean mouseButtonChanged = false;
-		while (!mouseQueue.isEmpty()) {
-			MouseEvent mouseEvent = mouseQueue.poll();
-
-			switch (mouseEvent.getID()) {
-			case MouseEvent.MOUSE_PRESSED -> {
+		boolean mouseButtonChanged = !mouseButtonEventQueue.isEmpty();
+		while (!mouseButtonEventQueue.isEmpty()) {
+			MouseEvent mouseEvent = mouseButtonEventQueue.poll();
+			if (MouseEvent.MOUSE_PRESSED == mouseEvent.getID()) {
 				mouseButtons |= 1 << (mouseEvent.getButton() - 1);
-				mouseButtonChanged = true;
-			}
-			case MouseEvent.MOUSE_RELEASED -> {
+			} else {
 				mouseButtons &= ~(1 << (mouseEvent.getButton() - 1));
-				mouseButtonChanged = true;
-			}
-			case MouseEvent.MOUSE_MOVED, MouseEvent.MOUSE_DRAGGED -> {
-				mouseMovedEvents[i] = mouseEvent;
-				i = 1;
-			}
-			default -> throw new IllegalStateException("Unsupported MouseEvent " + mouseEvent.getID());
 			}
 		}
 
-		if (mouseMovedEvents[1] != null) {
-			MouseEvent first = mouseMovedEvents[0];
-			MouseEvent last = mouseMovedEvents[1];
-			int data2 = (last.getX() - first.getX()) * 10;
-			postEvent(2, mouseButtons, data2);
+		if (!mouseMotionEventQueue.isEmpty()) {
+			while (!mouseMotionEventQueue.isEmpty()) {
+				int dx = mouseMotionEventQueue.poll();
+				postEvent(EV_MOUSE, mouseButtons, dx * 32);
+			}
 		} else if (mouseButtonChanged) {
-			postEvent(2, mouseButtons, 0);
+			postEvent(EV_MOUSE, mouseButtons, 0);
 		}
 
-		while (!keyboardQueue.isEmpty()) {
-			KeyEvent keyEvent = keyboardQueue.poll();
-			int type = KeyEvent.KEY_RELEASED == keyEvent.getID() ? 1 : 0;
-			int data1 = xlatekey(keyEvent.getKeyCode());
-			postEvent(type, data1, 0);
+		while (!keyboardEventQueue.isEmpty()) {
+			KeyEvent keyEvent = keyboardEventQueue.poll();
+			int type = KeyEvent.KEY_RELEASED == keyEvent.getID() ? EV_KEYUP : EV_KEYDOWN;
+			int key = xlatekey(keyEvent.getKeyCode());
+			postEvent(type, key, 0);
 		}
 	}
 
