@@ -4,6 +4,7 @@
 // $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
+// Copyright (C) 2025 by Frenkel Smeijers
 //
 // This source is available for distribution and/or modification
 // only under the terms of the DOOM Source Code License as
@@ -149,11 +150,16 @@ int             key_right;
 int		key_left;
 
 int		key_up;
+int		key_up_alt;
 int		key_down; 
+int		key_down_alt;
 int             key_strafeleft;
+int             key_strafeleft_alt;
 int		key_straferight; 
+int		key_straferight_alt;
 int             key_fire;
 int		key_use;
+int		key_use_alt;
 int		key_strafe;
 int		key_speed; 
  
@@ -305,12 +311,12 @@ void G_BuildTiccmd (ticcmd_t* cmd)
 	    cmd->angleturn += angleturn[tspeed]; 
     } 
  
-    if (gamekeydown[key_up]) 
+    if (gamekeydown[key_up] || gamekeydown[key_up_alt]) 
     {
 	// fprintf(stderr, "up\n");
 	forward += forwardmove[speed]; 
     }
-    if (gamekeydown[key_down]) 
+    if (gamekeydown[key_down] || gamekeydown[key_down_alt]) 
     {
 	// fprintf(stderr, "down\n");
 	forward -= forwardmove[speed]; 
@@ -319,9 +325,9 @@ void G_BuildTiccmd (ticcmd_t* cmd)
 	forward += forwardmove[speed]; 
     if (joyymove > 0) 
 	forward -= forwardmove[speed]; 
-    if (gamekeydown[key_straferight]) 
+    if (gamekeydown[key_straferight] || gamekeydown[key_straferight_alt]) 
 	side += sidemove[speed]; 
-    if (gamekeydown[key_strafeleft]) 
+    if (gamekeydown[key_strafeleft] || gamekeydown[key_strafeleft_alt]) 
 	side -= sidemove[speed];
     
     // buttons
@@ -331,7 +337,7 @@ void G_BuildTiccmd (ticcmd_t* cmd)
 	|| joybuttons[joybfire]) 
 	cmd->buttons |= BT_ATTACK; 
  
-    if (gamekeydown[key_use] || joybuttons[joybuse] ) 
+    if (gamekeydown[key_use] || gamekeydown[key_use_alt] || joybuttons[joybuse] ) 
     { 
 	cmd->buttons |= BT_USE;
 	// clear double clicks if hit use button 

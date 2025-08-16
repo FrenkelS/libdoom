@@ -178,13 +178,18 @@ int		usejoystick;
 extern int	key_right;
 extern int	key_left;
 extern int	key_up;
+extern int	key_up_alt;
 extern int	key_down;
+extern int	key_down_alt;
 
 extern int	key_strafeleft;
+extern int	key_strafeleft_alt;
 extern int	key_straferight;
+extern int	key_straferight_alt;
 
 extern int	key_fire;
 extern int	key_use;
+extern int	key_use_alt;
 extern int	key_strafe;
 extern int	key_speed;
 
@@ -249,12 +254,17 @@ default_t	defaults[] =
     {"key_right",&key_right, KEY_RIGHTARROW},
     {"key_left",&key_left, KEY_LEFTARROW},
     {"key_up",&key_up, KEY_UPARROW},
+    {"key_up_alt",&key_up_alt, 'w'},
     {"key_down",&key_down, KEY_DOWNARROW},
+    {"key_down_alt",&key_down_alt, 's'},
     {"key_strafeleft",&key_strafeleft, ','},
+    {"key_strafeleft_alt",&key_strafeleft_alt, 'a'},
     {"key_straferight",&key_straferight, '.'},
+    {"key_straferight_alt",&key_straferight_alt, 'd'},
 
     {"key_fire",&key_fire, KEY_RCTRL},
     {"key_use",&key_use, ' '},
+    {"key_use_alt",&key_use_alt, 'e'},
     {"key_strafe",&key_strafe, KEY_RALT},
     {"key_speed",&key_speed, KEY_RSHIFT},
 
