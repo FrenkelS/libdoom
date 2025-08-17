@@ -3,7 +3,6 @@ mkdir windows
 @set CFLAGS=/O2 /GL
 
 @set GLOBOBJS=
-@rem @set GLOBOBJS=%GLOBOBJS% i_driver.c
 
 @set GLOBOBJS=%GLOBOBJS% am_map.c
 @set GLOBOBJS=%GLOBOBJS% doomdef.c
@@ -66,7 +65,6 @@ mkdir windows
 @set GLOBOBJS=%GLOBOBJS% w_wad.c
 @set GLOBOBJS=%GLOBOBJS% z_zone.c
 
-@rem cl %GLOBOBJS% %CFLAGS% /Fewindows/libdoom.exe
 cl %GLOBOBJS% %CFLAGS% /LD /DDllExport=__declspec(dllexport) /Fewindows/libdoom.dll
 
 del *.err

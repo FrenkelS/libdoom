@@ -3,7 +3,6 @@ mkdir linux
 export CFLAGS="-Ofast -flto -fwhole-program -Wno-unused-result"
 
 export GLOBOBJS=""
-#export GLOBOBJS+=" i_driver.c"
 
 export GLOBOBJS+=" am_map.c"
 export GLOBOBJS+=" doomdef.c"
@@ -66,5 +65,4 @@ export GLOBOBJS+=" wi_stuff.c"
 export GLOBOBJS+=" w_wad.c"
 export GLOBOBJS+=" z_zone.c"
 
-#gcc $GLOBOBJS $CFLAGS -o linux/libdoom.out
 gcc $GLOBOBJS $CFLAGS -shared -fPIC -fvisibility=hidden -DDllExport="__attribute__((visibility(\"default\"))) __attribute__((externally_visible))" -o linux/libdoom.so
