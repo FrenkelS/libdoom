@@ -9,6 +9,9 @@ Why would you want that? To run Doom, of course!
 3. Install Java 24.
 4. Run `java LibDoomDriver.java`
 
+## Controls
+The usual, plus WASD to move and E to use.
+
 ## Command line arguments
 |Command line argument|Effect                          |
 |---------------------|--------------------------------|
