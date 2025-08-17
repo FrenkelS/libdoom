@@ -85,6 +85,7 @@ public class LibDoomDriver {
 	private final Arena arena;
 	private final SymbolLookup libdoom;
 	private final Linker linker;
+	private final MethodHandle postEventMethodHandle;
 
 	private LibDoomPanel libdoompanel;
 	private int scale;
@@ -110,6 +111,11 @@ public class LibDoomDriver {
 		this.libdoom = SymbolLookup.libraryLookup(path, arena);
 
 		this.linker = Linker.nativeLinker();
+
+		MemorySegment address = libdoom.findOrThrow("L_PostEvent");
+		FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT,
+				ValueLayout.JAVA_INT);
+		this.postEventMethodHandle = linker.downcallHandle(address, function);
 	}
 
 	@FunctionalInterface
@@ -293,11 +299,7 @@ public class LibDoomDriver {
 
 	private void postEvent(int type, int data1, int data2) {
 		try {
-			MemorySegment address = libdoom.findOrThrow("L_PostEvent");
-			FunctionDescriptor function = FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT,
-					ValueLayout.JAVA_INT);
-			MethodHandle methodHandle = linker.downcallHandle(address, function);
-			methodHandle.invokeExact(type, data1, data2);
+			postEventMethodHandle.invokeExact(type, data1, data2);
 		} catch (Throwable t) {
 			throw new IllegalStateException(t);
 		}
