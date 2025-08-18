@@ -92,11 +92,6 @@ void I_Quit(void)
 // Miscellaneous code
 //
 
-void I_Init(void)
-{
-}
-
-
 void I_StartFrame(void)
 {
 }
@@ -413,13 +408,16 @@ void I_WaitVBL(int count)
 // Time code
 //
 
+static clock_t basetime;
+
+
+void I_Init(void)
+{
+	basetime = clock();
+}
+
+
 int I_GetTime(void)
 {
-	clock_t c;
-	static clock_t basetime = 0;
-
-	c = clock();
-	if (!basetime)
-		basetime = c;
-	return (c - basetime) * TICRATE / CLOCKS_PER_SEC;
+	return (clock() - basetime) * TICRATE / CLOCKS_PER_SEC;
 }
