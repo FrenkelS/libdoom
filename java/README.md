@@ -4,7 +4,7 @@ With the Java Foreign Function & Memory API it's possible to call C code from Ja
 Why would you want that? To run Doom, of course!
 
 ## How to run
-1. Compile [libdoom](.), Doom as a dynamic library.
+1. Compile [libdoom](.), Doom as a dynamic library. Or [download](https://github.com/FrenkelS/libdoom/releases) the latest release.
 2. Place `doom1.wad` in the same directory as `LibDoomDriver.java`.
 3. Install Java 24.
 4. Run `java LibDoomDriver.java`
