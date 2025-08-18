@@ -4,6 +4,7 @@
 // $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
+// Copyright (C) 2025 by Frenkel Smeijers
 //
 // This source is available for distribution and/or modification
 // only under the terms of the DOOM Source Code License as
@@ -161,7 +162,7 @@ R_InstallSpriteLump
 
 //
 // R_InitSpriteDefs
-// Pass a null terminated list of sprite names
+// Pass a list of sprite names
 //  (4 chars exactly) to be used.
 // Builds the sprite rotation matrixes to account
 //  for horizontally flipped sprites.
@@ -176,7 +177,6 @@ R_InstallSpriteLump
 //
 void R_InitSpriteDefs (char** namelist) 
 { 
-    char**	check;
     int		i;
     int		l;
     int		intname;
@@ -185,13 +185,8 @@ void R_InitSpriteDefs (char** namelist)
     int		start;
     int		end;
     int		patched;
-		
-    // count the number of sprite names
-    check = namelist;
-    while (*check != NULL)
-	check++;
 
-    numsprites = check-namelist;
+    numsprites = NUMSPRITES;
 	
     if (!numsprites)
 	return;
