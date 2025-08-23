@@ -56,7 +56,9 @@ import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -94,6 +96,7 @@ public class LibDoomDriver {
 	private final Queue<Integer> mouseMotionEventQueue = new ConcurrentLinkedDeque<>();
 	private final Queue<MouseEvent> mouseButtonEventQueue = new ConcurrentLinkedDeque<>();
 	private int mouseButtons = 0;
+	private Map<Short, AudioFormat> audioFormats = new HashMap<>();
 	private Sequencer midiSequencer;
 
 	public LibDoomDriver() {
@@ -343,7 +346,7 @@ public class LibDoomDriver {
 		bb.getShort(); // format number (must be 3)
 		short sampleRate = bb.getShort(); // usually 11025
 		int numberOfSamples = Math.min(bb.getInt(), dmxBytes.length - 8);
-		AudioFormat audioFormat = new AudioFormat(sampleRate, 8, 1, false, false);
+		AudioFormat audioFormat = audioFormats.computeIfAbsent(sampleRate, s -> new AudioFormat(s, 8, 1, false, false));
 
 		try {
 			Clip clip = AudioSystem.getClip();
