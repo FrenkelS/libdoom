@@ -96,7 +96,7 @@ public class LibDoomDriver {
 	private final Queue<Integer> mouseMotionEventQueue = new ConcurrentLinkedDeque<>();
 	private final Queue<MouseEvent> mouseButtonEventQueue = new ConcurrentLinkedDeque<>();
 	private int mouseButtons = 0;
-	private Map<Short, AudioFormat> audioFormats = new HashMap<>();
+	private final Map<Short, AudioFormat> audioFormats = new HashMap<>();
 	private Sequencer midiSequencer;
 
 	public LibDoomDriver() {
@@ -338,14 +338,24 @@ public class LibDoomDriver {
 		}
 	}
 
+	private MemorySegment resize(MemorySegment memorySegment) {
+		byte[] dmxBytesPrefix = memorySegment.toArray(ValueLayout.JAVA_BYTE);
+		ByteBuffer bb = ByteBuffer.wrap(dmxBytesPrefix);
+		bb.order(ByteOrder.LITTLE_ENDIAN);
+		bb.getShort(); // format number
+		bb.getShort(); // sample rate
+		int numberOfSamples = bb.getInt();
+		return memorySegment.reinterpret(2 + 2 + 4 + 16 + numberOfSamples + 16);
+	}
+
 	private void startSound(MemorySegment memorySegment) {
-		byte[] dmxBytes = memorySegment.toArray(ValueLayout.JAVA_BYTE);
+		byte[] dmxBytes = resize(memorySegment).toArray(ValueLayout.JAVA_BYTE);
 
 		ByteBuffer bb = ByteBuffer.wrap(dmxBytes);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		bb.getShort(); // format number (must be 3)
 		short sampleRate = bb.getShort(); // usually 11025
-		int numberOfSamples = Math.min(bb.getInt(), dmxBytes.length - 8);
+		int numberOfSamples = bb.getInt();
 		AudioFormat audioFormat = audioFormats.computeIfAbsent(sampleRate, s -> new AudioFormat(s, 8, 1, false, false));
 
 		try {
@@ -455,7 +465,7 @@ public class LibDoomDriver {
 		};
 		MemorySegmentConsumer playSongFunc = isMusicAvailable() ? this::playSong : _ -> {
 		};
-		setFunc("L_SetStartSoundFunc", startSoundFunc, 57072); // size of DSBOSSIT, the largest sound lump
+		setFunc("L_SetStartSoundFunc", startSoundFunc, 8);
 		setFunc("L_SetPlaySongFunc", playSongFunc, 81574); // size of D_DDTBL2 and D_DDTBL3,
 															// the largest music files in MIDI format
 
