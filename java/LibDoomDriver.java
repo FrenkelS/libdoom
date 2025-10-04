@@ -338,22 +338,40 @@ public class LibDoomDriver {
 		}
 	}
 
-	private MemorySegment resize(MemorySegment memorySegment) {
-		byte[] dmxBytesPrefix = memorySegment.toArray(ValueLayout.JAVA_BYTE);
-		ByteBuffer bb = ByteBuffer.wrap(dmxBytesPrefix);
+	private MemorySegment resizeMemorySegmentSound(MemorySegment memorySegment) {
+		byte[] dmxBytes = memorySegment.toArray(ValueLayout.JAVA_BYTE);
+		ByteBuffer bb = ByteBuffer.wrap(dmxBytes);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
-		bb.getShort(); // format number
+		short formatNumber = bb.getShort(); // format number
+		assert formatNumber == 3;
 		bb.getShort(); // sample rate
 		int numberOfSamples = bb.getInt();
 		return memorySegment.reinterpret(2 + 2 + 4 + 16 + numberOfSamples + 16);
 	}
 
+	private MemorySegment resizeMemorySegmentMusic(MemorySegment memorySegment) {
+		byte[] midiBytes = memorySegment.toArray(ValueLayout.JAVA_BYTE);
+		ByteBuffer bb = ByteBuffer.wrap(midiBytes);
+		bb.order(ByteOrder.BIG_ENDIAN);
+		bb.getInt(); // "MThd"
+		bb.getInt(); // Length of MThd block (usually 6)
+		short format = bb.getShort();
+		assert format == 0;
+		short numTracks = bb.getShort();
+		assert numTracks == 1;
+		bb.getShort(); // number of MIDI delay ticks in a quarter-note
+		bb.getInt(); // "MTrk"
+		int length = bb.getInt();
+		return memorySegment.reinterpret(4 + 4 + 2 + 2 + 2 + 4 + 4 + length);
+	}
+
 	private void startSound(MemorySegment memorySegment) {
-		byte[] dmxBytes = resize(memorySegment).toArray(ValueLayout.JAVA_BYTE);
+		MemorySegment resizedMemorySegment = resizeMemorySegmentSound(memorySegment);
+		byte[] dmxBytes = resizedMemorySegment.toArray(ValueLayout.JAVA_BYTE);
 
 		ByteBuffer bb = ByteBuffer.wrap(dmxBytes);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
-		bb.getShort(); // format number (must be 3)
+		bb.getShort(); // format number
 		short sampleRate = bb.getShort(); // usually 11025
 		int numberOfSamples = bb.getInt();
 		AudioFormat audioFormat = audioFormats.computeIfAbsent(sampleRate, s -> new AudioFormat(s, 8, 1, false, false));
@@ -366,7 +384,7 @@ public class LibDoomDriver {
 				}
 
 			});
-			clip.open(audioFormat, dmxBytes, 0x18, numberOfSamples - 16 - 16);
+			clip.open(audioFormat, dmxBytes, 2 + 2 + 4 + 16, numberOfSamples - 16 - 16);
 			clip.start();
 		} catch (LineUnavailableException e) {
 			throw new IllegalStateException(e);
@@ -377,7 +395,9 @@ public class LibDoomDriver {
 		try {
 			midiSequencer.close();
 
-			InputStream midi = new ByteArrayInputStream(memorySegment.toArray(ValueLayout.JAVA_BYTE));
+			MemorySegment resizedMemorySegment = resizeMemorySegmentMusic(memorySegment);
+			InputStream midi = new ByteArrayInputStream(resizedMemorySegment.toArray(ValueLayout.JAVA_BYTE));
+
 			midiSequencer.setSequence(MidiSystem.getSequence(midi));
 			midiSequencer.setLoopCount(Sequencer.LOOP_CONTINUOUSLY);
 			midiSequencer.open();
@@ -465,9 +485,8 @@ public class LibDoomDriver {
 		};
 		MemorySegmentConsumer playSongFunc = isMusicAvailable() ? this::playSong : _ -> {
 		};
-		setFunc("L_SetStartSoundFunc", startSoundFunc, 8);
-		setFunc("L_SetPlaySongFunc", playSongFunc, 81574); // size of D_DDTBL2 and D_DDTBL3,
-															// the largest music files in MIDI format
+		setFunc("L_SetStartSoundFunc", startSoundFunc, 2 + 2 + 4);
+		setFunc("L_SetPlaySongFunc", playSongFunc, 4 + 4 + 2 + 2 + 2 + 4 + 4);
 
 		doomMain();
 	}
